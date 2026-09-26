@@ -1,0 +1,1938 @@
+<html lang="zh-CN"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ragam互动菜园</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        // Tailwind配置
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4CAF50',
+                        secondary: '#8D6E63',
+                        accent: '#FFC107',
+                        dark: '#2E7D32',
+                        light: '#E8F5E9',
+                        // 社交平台颜色
+                        qq: '#12B7F5',
+                        xhs: '#FE2C55',
+                        weibo: '#E6162D',
+                        instagram: '#E1306C',
+                        whatsapp: '#25D366',
+                        telegram: '#0088CC'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+            }
+            .animate-grow {
+                animation: grow 2s ease-in-out infinite alternate;
+            }
+            .animate-float {
+                animation: float 3s ease-in-out infinite;
+            }
+            .garden-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 1rem;
+            }
+            .timer-progress {
+                height: 4px;
+                background-color: #e5e7eb;
+                border-radius: 2px;
+                overflow: hidden;
+                margin-top: 0.5rem;
+            }
+            .timer-progress-bar {
+                height: 100%;
+                background-color: #4CAF50;
+                width: 0%;
+                transition: width 1s linear;
+            }
+            .language-dropdown {
+                position: relative;
+                display: inline-block;
+            }
+            .language-dropdown-content {
+                display: none;
+                position: absolute;
+                background-color: white;
+                min-width: 120px;
+                box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                z-index: 1;
+                border-radius: 4px;
+                overflow: hidden;
+            }
+            .language-dropdown-content button {
+                color: black;
+                padding: 8px 12px;
+                text-decoration: none;
+                display: block;
+                width: 100%;
+                text-align: left;
+                border: none;
+                background: none;
+                cursor: pointer;
+            }
+            .language-dropdown-content button:hover {
+                background-color: #f1f1f1;
+            }
+            .language-dropdown:hover .language-dropdown-content {
+                display: block;
+            }
+            @keyframes grow {
+                from { transform: scale(1); }
+                to { transform: scale(1.05); }
+            }
+            @keyframes float {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-10px); }
+            }
+            /* 交互反馈样式 */
+            .btn-press {
+                transform: scale(0.95);
+                transition: transform 0.1s ease;
+            }
+            .craft-card {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            .craft-card:hover {
+                transform: translateY(-5px);
+            }
+            /* 进度条动画效果 */
+            .progress-reset {
+                transition: width 0.5s ease-out;
+            }
+            .progress-grow {
+                transition: width 0.5s ease-in;
+            }
+            /* 分享弹窗样式 - 优化手机端显示 */
+            .share-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: flex-end; /* 手机端从底部弹出 */
+                z-index: 100;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s, visibility 0.3s;
+            }
+            .share-modal.active {
+                opacity: 1;
+                visibility: visible;
+            }
+            .share-modal-content {
+                background-color: white;
+                border-radius: 12px 12px 0 0; /* 手机端顶部圆角 */
+                width: 100%;
+                max-width: 500px;
+                transform: translateY(100%); /* 初始位置在屏幕外 */
+                transition: transform 0.3s;
+            }
+            .share-modal.active .share-modal-content {
+                transform: translateY(0);
+            }
+            .share-title {
+                padding: 16px;
+                border-bottom: 1px solid #eee;
+                text-align: center;
+                font-size: 18px;
+                font-weight: bold;
+            }
+            .share-widget-preview {
+                padding: 16px;
+                background-color: #f9f9f9;
+                border-radius: 8px;
+                margin: 0 16px;
+                text-align: center;
+                border: 1px solid #eee;
+            }
+            .share-widget-preview img {
+                width: 100px;
+                height: 100px;
+                object-fit: cover;
+                border-radius: 4px;
+                margin-bottom: 8px;
+            }
+            .share-widget-title {
+                font-weight: bold;
+                margin-bottom: 4px;
+                color: #333;
+            }
+            .share-widget-desc {
+                font-size: 14px;
+                color: #666;
+                margin-bottom: 8px;
+            }
+            .share-widget-link {
+                font-size: 12px;
+                color: #4CAF50;
+                text-decoration: none;
+            }
+            .share-options {
+                display: flex;
+                flex-wrap: wrap;
+                padding: 16px;
+                justify-content: center;
+                gap: 16px;
+            }
+            .share-option {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                cursor: pointer;
+                transition: transform 0.2s;
+                width: 60px;
+                touch-action: manipulation; /* 优化触摸体验 */
+            }
+            .share-option:active {
+                transform: scale(0.9); /* 触摸反馈 */
+            }
+            .share-option:hover {
+                transform: scale(1.1);
+            }
+            .share-icon {
+                width: 50px; /* 增大图标便于触摸 */
+                height: 50px;
+                border-radius: 50%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-bottom: 8px;
+                color: white;
+                font-size: 24px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+            .share-name {
+                font-size: 13px;
+                text-align: center;
+                white-space: nowrap;
+            }
+            .share-close {
+                padding: 16px;
+                border-top: 1px solid #eee;
+                text-align: center;
+                font-weight: bold;
+                cursor: pointer;
+                color: #666;
+                font-size: 16px;
+            }
+            .share-close:hover, .share-close:active {
+                color: #333;
+                background-color: #f9f9f9;
+            }
+            /* 社交平台分享弹窗样式 */
+            .platform-share-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 110;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s, visibility 0.3s;
+            }
+            .platform-share-modal.active {
+                opacity: 1;
+                visibility: visible;
+            }
+            .platform-share-content {
+                background-color: white;
+                border-radius: 12px;
+                padding: 20px;
+                text-align: center;
+                max-width: 300px;
+                width: 90%;
+            }
+            .platform-share-icon {
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 0 auto 15px;
+                color: white;
+                font-size: 30px;
+            }
+            .platform-share-title {
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 15px;
+            }
+            .platform-share-instruction {
+                margin-bottom: 20px;
+                color: #666;
+                line-height: 1.5;
+            }
+            .platform-share-actions {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+            .platform-share-actions textarea {
+                flex: 1;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                resize: none;
+                height: 80px;
+            }
+            .platform-share-button {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 10px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: bold;
+                margin: 0 5px;
+                font-size: 15px;
+                min-width: 80px;
+            }
+            .platform-share-button.copy-btn {
+                background-color: #666;
+            }
+            .platform-share-button.open-btn {
+                background-color: #007bff;
+            }
+            .platform-share-button:active {
+                transform: scale(0.95);
+            }
+            /* 微信分享二维码弹窗样式 */
+            .wechat-qrcode-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 110;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s, visibility 0.3s;
+            }
+            .wechat-qrcode-modal.active {
+                opacity: 1;
+                visibility: visible;
+            }
+            .wechat-qrcode-content {
+                background-color: white;
+                border-radius: 12px;
+                padding: 20px;
+                text-align: center;
+                max-width: 300px;
+                width: 90%;
+            }
+            .qrcode-image {
+                width: 200px;
+                height: 200px;
+                margin: 0 auto 15px;
+                background-color: #fff;
+                padding: 10px;
+                border: 1px solid #eee;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .qrcode-image canvas {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+            .qrcode-instruction {
+                margin-bottom: 15px;
+                color: #333;
+                line-height: 1.5;
+            }
+            .close-qrcode {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 10px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: bold;
+                font-size: 15px;
+            }
+            .close-qrcode:active {
+                transform: scale(0.95);
+            }
+            /* 手机端适配 */
+            @media (max-width: 640px) {
+                .share-options {
+                    gap: 12px;
+                    padding: 12px 8px;
+                }
+                .share-option {
+                    width: 55px;
+                }
+                .share-icon {
+                    width: 45px;
+                    height: 45px;
+                    font-size: 20px;
+                }
+                .task-item {
+                    padding: 4vw;
+                }
+                .complete-task {
+                    padding: 8px 12px;
+                    font-size: 14px;
+                }
+                /* 增加触摸目标大小 */
+                button, .clickable {
+                    min-height: 44px;
+                    min-width: 44px;
+                }
+            }
+        }
+    </style>
+</head>
+<body class="bg-light min-h-screen font-sans text-gray-800 overflow-x-hidden">
+    <!-- 顶部导航栏 -->
+    <header class="bg-primary text-white shadow-md">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-leaf text-2xl animate-float"></i>
+                <h1 class="text-xl md:text-2xl font-bold" data-i18n="title">Ragam互动菜园</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="language-dropdown">
+                    <button id="languageBtn" class="flex items-center hover:text-accent transition-colors">
+                        <i class="fa fa-globe mr-1"></i>
+                        <span id="currentLanguage">中文</span>
+                        <i class="fa fa-caret-down ml-1"></i>
+                    </button>
+                    <div class="language-dropdown-content">
+                        <button data-lang="zh" class="language-option">中文</button>
+                        <button data-lang="en" class="language-option">English</button>
+                        <button data-lang="fr" class="language-option">Français</button>
+                        <button data-lang="id" class="language-option">Bahasa Indonesia</button>
+                    </div>
+                </div>
+                <button id="profileBtn" class="flex items-center hover:text-accent transition-colors">
+                    <i class="fa fa-user-circle mr-1"></i>
+                    <span data-i18n="myAccount">我的账户</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6">
+        <!-- 左侧功能区 -->
+        <section class="lg:w-1/3 xl:w-1/4 space-y-6">
+            <!-- 经验值栏目 -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden transform transition-all hover:shadow-xl">
+                <div class="bg-primary text-white p-4">
+                    <h2 class="text-xl font-bold flex items-center">
+                        <i class="fa fa-star mr-2 text-accent"></i>
+                        <span data-i18n="experience">经验值</span>
+                    </h2>
+                </div>
+                <div class="p-5">
+                    <div class="flex justify-between mb-2">
+                        <span class="font-semibold" data-i18n="currentExp">当前经验:</span>
+                        <span id="currentExp" class="text-primary font-bold">150/500</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+                        <div id="expBar" class="bg-primary h-4 rounded-full" style="width: 30%"></div>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="font-semibold" data-i18n="level">等级:</span>
+                        <span id="playerLevel" class="bg-accent text-white px-2 py-1 rounded-full text-sm font-bold">2级</span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="font-semibold" data-i18n="streakDays">连续登录:</span>
+                        <span id="streakDays" class="text-dark font-bold">
+                            <span id="streakDaysNumber">3</span>
+                            <span data-i18n="streakDaysSuffix"></span>
+                        </span>
+                    </div>
+                    <button id="claimDailyReward" class="w-full mt-3 bg-accent hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">
+                        <i class="fa fa-gift mr-2"></i>
+                        <span data-i18n="dailyReward">领取今日奖励</span>
+                    </button>
+                </div>
+            </div>
+          
+          <!-- 任务栏目 -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden transform transition-all hover:shadow-xl">
+                <div class="bg-primary text-white p-4">
+                    <h2 class="text-xl font-bold flex items-center">
+                        <i class="fa fa-tasks mr-2 text-accent"></i>
+                        <span data-i18n="tasks">任务</span>
+                    </h2>
+                </div>
+                <div class="p-5 space-y-4">
+                    <div class="task-item border border-gray-200 rounded-lg p-3 hover:border-primary transition-colors" data-task-id="1">
+                        <h3 class="font-bold mb-1" data-i18n="task1Title">浏览Ragam官网</h3>
+                        <p class="text-sm text-gray-600 mb-2" data-i18n="task1Desc">在官网停留至少10秒</p>
+                        <div class="timer-progress">
+                            <div class="timer-progress-bar" data-task-id="1"></div>
+                        </div>
+                        <div class="flex justify-between items-center mt-3">
+                            <span class="bg-primary/10 text-primary px-2 py-1 rounded text-sm" data-i18n="exp80">+80 经验</span>
+                            <button class="complete-task bg-primary hover:bg-dark text-white px-3 py-1 rounded text-sm transition-colors" data-link="https://www.ragamfoundation.org" data-duration="10">
+                                <span data-i18n="complete">去完成</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="task-item border border-gray-200 rounded-lg p-3 hover:border-primary transition-colors" data-task-id="2">
+                        <h3 class="font-bold mb-1" data-i18n="task2Title">观看官方视频</h3>
+                        <p class="text-sm text-gray-600 mb-2" data-i18n="task2Desc">观看Ragam官方视频至少10秒</p>
+                        <div class="timer-progress">
+                            <div class="timer-progress-bar" data-task-id="2"></div>
+                        </div>
+                        <div class="flex justify-between items-center mt-3">
+                            <span class="bg-primary/10 text-primary px-2 py-1 rounded text-sm" data-i18n="exp100">+100 经验</span>
+                            <button class="complete-task bg-primary hover:bg-dark text-white px-3 py-1 rounded text-sm transition-colors" data-link="https://www.instagram.com/ragamfoundation/" data-duration="10">
+                                <span data-i18n="complete">去完成</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="task-item border border-gray-200 rounded-lg p-3 hover:border-primary transition-colors" data-task-id="3">
+                        <h3 class="font-bold mb-1" data-i18n="task3Title">分享Ragam</h3>
+                        <p class="text-sm text-gray-600 mb-2" data-i18n="task3Desc">分享到社交平台</p>
+                        <div class="timer-progress">
+                            <div class="timer-progress-bar" data-task-id="3"></div>
+                        </div>
+                        <div class="flex justify-between items-center mt-3">
+                            <span class="bg-primary/10 text-primary px-2 py-1 rounded text-sm" data-i18n="exp150">+150 经验</span>
+                            <button class="complete-task bg-primary hover:bg-dark text-white px-3 py-1 rounded text-sm transition-colors" data-link="javascript:openShareModal()" data-duration="0">
+                                <span data-i18n="complete">去完成</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="task-item border border-gray-200 rounded-lg p-3 hover:border-primary transition-colors" data-task-id="4">
+                        <h3 class="font-bold mb-1" data-i18n="task4Title">浏览编织物</h3>
+                        <p class="text-sm text-gray-600 mb-2" data-i18n="task4Desc">浏览编织物售卖区至少15秒</p>
+                        <div class="timer-progress">
+                            <div class="timer-progress-bar" data-task-id="4"></div>
+                        </div>
+                        <div class="flex justify-between items-center mt-3">
+                            <span class="bg-primary/10 text-primary px-2 py-1 rounded text-sm" data-i18n="exp60">+60 经验</span>
+                            <button class="complete-task bg-primary hover:bg-dark text-white px-3 py-1 rounded text-sm transition-colors scroll-to-crafts" data-link="#crafts-section" data-duration="15">
+                                <span data-i18n="complete">去完成</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          
+
+            <!-- 志愿者招募栏目 -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden transform transition-all hover:shadow-xl">
+                <div class="bg-primary text-white p-4">
+                    <h2 class="text-xl font-bold flex items-center">
+                        <i class="fa fa-users mr-2 text-accent"></i>
+                        <span data-i18n="volunteerRecruitment">志愿者招募</span>
+                    </h2>
+                </div>
+                <div class="p-5">
+                    <div id="volunteerOpportunities" class="space-y-4">
+                        <div class="border-l-4 border-primary pl-3 py-1">
+                            <h3 class="font-bold" data-i18n="volunteer1Title">Ragam日常协助</h3>
+                            <p class="text-sm text-gray-600 mb-1" data-i18n="volunteer1Date">2025年12月15-20日 · 巴厘岛</p>
+                            <p class="text-sm text-gray-600 mb-2" data-i18n="volunteer1Desc">需要10名国际生志愿者，负责翻译和引导</p>
+                            <button class="apply-volunteer bg-secondary hover:bg-secondary/80 text-white px-3 py-1 rounded text-sm transition-colors" data-id="1">
+                                <span data-i18n="apply">我要报名</span>
+                            </button>
+                        </div>
+
+                        <div class="border-l-4 border-primary pl-3 py-1">
+                            <h3 class="font-bold" data-i18n="volunteer2Title">手工艺推广志愿者</h3>
+                            <p class="text-sm text-gray-600 mb-1" data-i18n="volunteer2Date">长期 · 线上</p>
+                            <p class="text-sm text-gray-600 mb-2" data-i18n="volunteer2Desc">协助推广巴厘岛妇女编织物，需良好英语能力</p>
+                            <button class="apply-volunteer bg-secondary hover:bg-secondary/80 text-white px-3 py-1 rounded text-sm transition-colors" data-id="2">
+                                <span data-i18n="apply">我要报名</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+      <!-- 右侧主视觉区 -->
+        <section class="lg:w-2/3 xl:w-3/4 space-y-6">
+
+            <!-- 菜园区域 -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-primary text-white p-4">
+                    <h2 class="text-xl font-bold flex items-center">
+                        <i class="fa fa-pagelines mr-2 text-accent"></i>
+                        <span data-i18n="myGarden">我的菜园</span>
+                    </h2>
+                </div>
+                <div class="p-5">
+                    <div class="garden-grid">
+                        <!-- 地块1：番茄（生长中） -->
+                        <div class="garden-plot bg-amber-50 border-2 border-amber-200 rounded-lg p-3 flex flex-col items-center justify-center hover:border-primary transition-all cursor-pointer relative group">
+                            <div class="w-full h-20 bg-green-100 rounded-md mb-2 overflow-hidden relative">
+                                <img src="https://p3-search.byteimg.com/obj/labis/265e62bce7504644b669d9b69def02d7" alt="生长中的番茄" class="w-full h-full object-contain animate-grow">
+                            </div>
+                            <h3 class="font-bold text-center" data-i18n="tomato">番茄</h3>
+                            <div class="text-xs text-gray-600 mt-1" data-i18n="waterRequired100">需100水分值</div>
+                            <div class="text-xs text-primary mt-1">
+                                <i class="fa fa-seedling mr-1"></i>
+                                <span data-i18n="seedCount">种子数量:</span>
+                                <span class="tomato-seed-count">0</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                <div class="bg-red-500 h-2 rounded-full progress-grow" style="width: 20%;"></div>
+                            </div>
+                            <div class="mt-2 text-sm water-value">20/100</div>
+                            <button class="water-plant absolute bottom-3 bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity" data-plant="tomato" data-cost="20" data-max="100">
+                                <i class="fa fa-tint mr-1"></i>
+                                <span data-i18n="waterMinus20">浇水 (-20经验)</span>
+                            </button>
+                        </div>
+
+                        <!-- 地块2：黄瓜（生长中） -->
+                        <div class="garden-plot bg-green-50 border-2 border-green-200 rounded-lg p-3 flex flex-col items-center justify-center hover:border-primary transition-all cursor-pointer relative group">
+                            <div class="w-full h-20 bg-green-100 rounded-md mb-2 overflow-hidden relative">
+                                <img src="https://p3-search.byteimg.com/obj/labis/b41cec1d369cca5636747f10439da43e" alt="生长中的黄瓜" class="w-full h-full object-contain animate-grow">
+                            </div>
+                            <h3 class="font-bold text-center" data-i18n="cucumber">黄瓜</h3>
+                            <div class="text-xs text-gray-600 mt-1" data-i18n="waterRequired120">需120水分值</div>
+                            <div class="text-xs text-primary mt-1">
+                                <i class="fa fa-seedling mr-1"></i>
+                                <span data-i18n="seedCount">种子数量:</span>
+                                <span class="cucumber-seed-count">1</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                <div class="bg-green-500 h-2 rounded-full progress-grow" style="width: 0%;"></div>
+                            </div>
+                            <div class="mt-2 text-sm water-value">0/120</div>
+                            <button class="water-plant absolute bottom-3 bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity" data-plant="cucumber" data-cost="20" data-max="120">
+                                <i class="fa fa-tint mr-1"></i>
+                                <span data-i18n="waterMinus20">浇水 (-20经验)</span>
+                            </button>
+                        </div>
+
+                        <!-- 地块3：西兰花（未解锁） -->
+                        <div class="garden-plot bg-gray-50 border-2 border-gray-200 rounded-lg p-3 flex flex-col items-center justify-center opacity-50 relative">
+                            <div class="w-full h-20 bg-gray-100 rounded-md mb-2 flex items-center justify-center">
+                                <img src="https://p3-search.byteimg.com/obj/labis/9767bc7dfc9f33ec7e82337f06c2254a" alt="西兰花图片" class="w-16 h-16 object-contain opacity-50">
+                                <i class="fa fa-lock text-gray-400 text-2xl absolute"></i>
+                            </div>
+                            <h3 class="font-bold text-center" data-i18n="broccoli">西兰花</h3>
+                            <div class="text-xs text-gray-600 mt-1" data-i18n="waterRequired150">需150水分值</div>
+                            <div class="text-xs text-primary mt-1">
+                                <i class="fa fa-seedling mr-1"></i>
+                                <span data-i18n="seedCount">种子数量:</span>
+                                <span class="broccoli-seed-count">0</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-2" data-i18n="unlockLevel5">等级5解锁</div>
+                        </div>
+
+                        <!-- 地块4：巴厘岛空心菜（未解锁） -->
+                        <div class="garden-plot bg-gray-50 border-2 border-gray-200 rounded-lg p-3 flex flex-col items-center justify-center opacity-50 relative">
+                            <div class="w-full h-20 bg-gray-100 rounded-md mb-2 flex items-center justify-center">
+                                <img src="https://p3-search.byteimg.com/obj/labis/48dd6472b4a0b61c8ec8bc1d2d81c700" alt="空心菜图片" class="w-16 h-16 object-contain opacity-50">
+                                <i class="fa fa-lock text-gray-400 text-2xl absolute"></i>
+                            </div>
+                            <h3 class="font-bold text-center" data-i18n="baliSpinach">巴厘岛空心菜</h3>
+                            <div class="text-xs text-gray-600 mt-1" data-i18n="waterRequired80">需80水分值</div>
+                            <div class="text-xs text-primary mt-1">
+                                <i class="fa fa-seedling mr-1"></i>
+                                <span data-i18n="seedCount">种子数量:</span>
+                                <span class="spinach-seed-count">0</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-2" data-i18n="unlockLevel7">等级7解锁</div>
+                        </div>
+                    </div>
+
+                    <!-- 增加了额外的空白行来拉大间距 -->
+                    <div class="h-6"></div>
+                    <div class="h-6"></div>
+                  
+
+                    <!-- 种子商店 -->
+                    <div class="mt-8">
+                        <h3 class="font-bold text-lg mb-4 flex items-center">
+                            <i class="fa fa-shopping-bag mr-2 text-primary"></i>
+                            <span data-i18n="seedShop">种子商店</span>
+                        </h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="border border-gray-200 rounded-lg p-3 hover:border-primary transition-colors">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold" data-i18n="tomatoSeeds">番茄种子</h4>
+                                    <span class="text-sm bg-primary/10 text-primary px-1 rounded" data-i18n="exp50">50经验</span>
+                                </div>
+                                <button class="buy-seed w-full mt-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm py-1 rounded transition-colors" data-seed="tomato" data-cost="50">
+                                    <span data-i18n="buy">购买</span>
+                                </button>
+                            </div>
+
+                            <div class="border border-gray-200 rounded-lg p-3 hover:border-primary transition-colors">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold" data-i18n="cucumberSeeds">黄瓜种子</h4>
+                                    <span class="text-sm bg-primary/10 text-primary px-1 rounded" data-i18n="exp60">+60 经验</span>
+                                </div>
+                                <button class="buy-seed w-full mt-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm py-1 rounded transition-colors" data-seed="cucumber" data-cost="60">
+                                    <span data-i18n="buy">购买</span>
+                                </button>
+                            </div>
+
+                            <div class="border border-gray-200 rounded-lg p-3 hover:border-primary transition-colors opacity-70">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold" data-i18n="broccoliSeeds">西兰花种子</h4>
+                                    <span class="text-sm bg-primary/10 text-primary px-1 rounded" data-i18n="exp200">200经验</span>
+                                </div>
+                                <button class="w-full mt-2 bg-gray-200 text-gray-500 text-sm py-1 rounded cursor-not-allowed" disabled="" data-i18n="unlockLevel5Btn">等级5解锁</button>
+                            </div>
+
+                            <div class="border border-gray-200 rounded-lg p-3 hover:border-primary transition-colors opacity-70">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold" data-i18n="spinachSeeds">空心菜种子</h4>
+                                    <span class="text-sm bg-primary/10 text-primary px-1 rounded" data-i18n="exp250">250经验</span>
+                                </div>
+                                <button class="w-full mt-2 bg-gray-200 text-gray-500 text-sm py-1 rounded cursor-not-allowed" disabled="" data-i18n="unlockLevel7Btn">等级7解锁</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+ 
+         
+      <div class="h-6"></div>
+            <!-- 巴厘岛妇女编织物售卖区 -->
+            <div id="crafts-section" class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-secondary text-white p-4">
+                    <h2 class="text-xl font-bold flex items-center">
+                        <i class="fa fa-shopping-basket mr-2 text-accent"></i>
+                        <span data-i18n="balineseCrafts">巴厘岛妇女编织物</span>
+                    </h2>
+                </div>
+                <div class="p-5">
+                    <p class="mb-4 text-gray-600" data-i18n="craftsDescription">支持巴厘岛妇女手工艺，每购买一件产品，部分收入将用于帮助当地妇女发展手工艺技能。</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- 编织物1 -->
+                        <div class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow craft-card">
+                            <img src="https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/code_assistant/ad102acced764ae9906cf55996a9615c~tplv-a9rns2rl98-image.image?rcl=20250914172837AEE1B251C0E7868E46A0&amp;rk3s=8e244e95&amp;rrcfp=2609e108&amp;x-expires=1758446920&amp;x-signature=rw45BH%2BI3k6D%2BLOamOYNKc2yBIQ%3D" alt="巴厘岛传统编织围巾" class="w-full h-48 object-cover">
+                            <div class="p-3">
+                                <h3 class="font-bold" data-i18n="craft1Name">传统编织围巾</h3>
+                                <p class="text-sm text-gray-600 mt-1" data-i18n="craft1Desc">纯手工编织，采用天然棉线</p>
+                                <div class="flex justify-between items-center mt-3">
+                                    <span class="font-bold text-lg">¥129</span>
+                                    <button class="buy-craft bg-secondary hover:bg-secondary/80 text-white px-3 py-1 rounded text-sm transition-colors" data-link="https://www.ragam.example.com/crafts/1">
+                                        <span data-i18n="buy">购买</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 编织物2 -->
+                        <div class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow craft-card">
+                            <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/code_assistant/d41b4406571b4dc197b4caf9540ed902~tplv-a9rns2rl98-image.image?rcl=20250914172957129DAF75C24E9C0E6952&amp;rk3s=8e244e95&amp;rrcfp=2609e108&amp;x-expires=1758447000&amp;x-signature=PweaOytOYwPbWUZV5S96ouHN77Q%3D" alt="巴厘岛手工挂毯" class="w-full h-48 object-cover">
+                            <div class="p-3">
+                                <h3 class="font-bold" data-i18n="craft2Name">手工挂毯装饰</h3>
+                                <p class="text-sm text-gray-600 mt-1" data-i18n="craft2Desc">传统图案，精美装饰</p>
+                                <div class="flex justify-between items-center mt-3">
+                                    <span class="font-bold text-lg">¥249</span>
+                                    <button class="buy-craft bg-secondary hover:bg-secondary/80 text-white px-3 py-1 rounded text-sm transition-colors" data-link="https://www.ragam.example.com/crafts/2">
+                                        <span data-i18n="buy">购买</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 编织物3 -->
+                        <div class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow craft-card">
+                            <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/code_assistant/015e22e55bfa49d6b9fdf1bceb9ab508~tplv-a9rns2rl98-image.image?rcl=202509141729295186DD229F502D203032&amp;rk3s=8e244e95&amp;rrcfp=2609e108&amp;x-expires=1758446973&amp;x-signature=3P91C8r7dWQfwUjpkHLlddOL%2FyM%3D" alt="巴厘岛编织手提袋" class="w-full h-48 object-cover">
+                            <div class="p-3">
+                                <h3 class="font-bold" data-i18n="craft3Name">编织手提袋</h3>
+                                <p class="text-sm text-gray-600 mt-1" data-i18n="craft3Desc">实用美观，环保材料</p>
+                                <div class="flex justify-between items-center mt-3">
+                                    <span class="font-bold text-lg">¥189</span>
+                                    <button class="buy-craft bg-secondary hover:bg-secondary/80 text-white px-3 py-1 rounded text-sm transition-colors" data-link="https://www.ragam.example.com/crafts/3">
+                                        <span data-i18n="buy">购买</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white mt-10 py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center">
+                        <i class="fa fa-leaf text-2xl mr-2"></i>
+                        <span class="font-bold text-xl" data-i18n="title">Ragam互动菜园</span>
+                    </div>
+                    <p class="text-sm text-gray-300 mt-1" data-i18n="footerDescription">拥抱社区，连接世界，体验巴厘岛文化</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="hover:text-accent transition-colors"><i class="fa fa-facebook"></i></a>
+                    <a href="#" class="hover:text-accent transition-colors"><i class="fa fa-twitter"></i></a>
+                    <a href="#" class="hover:text-accent transition-colors"><i class="fa fa-instagram"></i></a>
+                    <a href="#" class="hover:text-accent transition-colors"><i class="fa fa-youtube-play"></i></a>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-4 pt-4 text-center text-sm text-gray-300" data-i18n="copyright">© 2025 Ragam互动菜园 | 与Ragam官方合作推出</div>
+        </div>
+    </footer>
+
+    <!-- 模态框：志愿者报名 -->
+    <div id="volunteerModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800" id="volunteerModalTitle" data-i18n="volunteerApplication">志愿者报名</h3>
+                <button id="closeVolunteerModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="volunteerForm" class="space-y-4">
+                <input type="hidden" id="volunteerId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="name" data-i18n="name">姓名</label>
+                    <input type="text" id="name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required="">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="nationality" data-i18n="nationality">国籍</label>
+                    <input type="text" id="nationality" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required="">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="contact" data-i18n="contactInfo">联系方式</label>
+                    <input type="text" id="contact" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="电话或邮箱" required="">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="experience" data-i18n="relevantExperience">相关经历</label>
+                    <textarea id="experience" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="availability" data-i18n="availability">可参与时间</label>
+                    <input type="text" id="availability" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required="">
+                </div>
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="terms" type="checkbox" class="w-4 h-4 border border-gray-300 rounded focus:ring-primary" required="">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="terms" class="text-gray-600" data-i18n="termsAgreement">我知晓并同意所有费用（包括机票、住宿等）需自理</label>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-primary hover:bg-dark text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                    <span data-i18n="submitApplication">提交报名</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 分享弹窗 -->
+    <div id="shareModal" class="share-modal">
+        <div class="share-modal-content">
+            <div class="share-title" data-i18n="task3Title">分享Ragam</div>
+            
+            <!-- 分享小部件预览 -->
+            <div class="share-widget-preview">
+                <img src="https://picsum.photos/id/106/200/200" alt="Ragam Foundation预览图">
+                <div class="share-widget-title">Ragam互动菜园</div>
+                <div class="share-widget-desc" data-i18n="footerDescription">拥抱社区，连接世界，体验巴厘岛文化</div>
+                <a href="https://www.ragamfoundation.org" class="share-widget-link" target="_blank">www.ragamfoundation.org</a>
+            </div>
+            
+            <div class="share-options">
+                <div class="share-option" data-platform="wechat" title="微信好友">
+                    <div class="share-icon bg-green-500">
+                        <i class="fa fa-weixin"></i>
+                    </div>
+                    <div class="share-name" data-i18n="wechat">微信</div>
+                </div>
+                <div class="share-option" data-platform="wechat-moments" title="微信朋友圈">
+                    <div class="share-icon bg-green-600">
+                        <i class="fa fa-share-alt"></i>
+                    </div>
+                    <div class="share-name" data-i18n="moments">朋友圈</div>
+                </div>
+                <div class="share-option" data-platform="qq" title="QQ好友">
+                    <div class="share-icon bg-qq">
+                        <i class="fa fa-qq"></i>
+                    </div>
+                    <div class="share-name" data-i18n="qq">QQ</div>
+                </div>
+                <div class="share-option" data-platform="xhs" title="小红书">
+                    <div class="share-icon bg-xhs">
+                        <i class="fa fa-book"></i>
+                    </div>
+                    <div class="share-name" data-i18n="xhs">小红书</div>
+                </div>
+                <div class="share-option" data-platform="weibo" title="微博">
+                    <div class="share-icon bg-weibo">
+                        <i class="fa fa-weibo"></i>
+                    </div>
+                    <div class="share-name" data-i18n="weibo">微博</div>
+                </div>
+                <div class="share-option" data-platform="instagram" title="Instagram">
+                    <div class="share-icon bg-instagram">
+                        <i class="fa fa-instagram"></i>
+                    </div>
+                    <div class="share-name">Instagram</div>
+                </div>
+                <div class="share-option" data-platform="whatsapp" title="WhatsApp">
+                    <div class="share-icon bg-whatsapp">
+                        <i class="fa fa-whatsapp"></i>
+                    </div>
+                    <div class="share-name">WhatsApp</div>
+                </div>
+                <div class="share-option" data-platform="telegram" title="Telegram">
+                    <div class="share-icon bg-telegram">
+                        <i class="fa fa-paper-plane"></i>
+                    </div>
+                    <div class="share-name">Telegram</div>
+                </div>
+                <div class="share-option" data-platform="copy-link" title="复制链接">
+                    <div class="share-icon bg-gray-600">
+                        <i class="fa fa-link"></i>
+                    </div>
+                    <div class="share-name" data-i18n="copyLink">复制链接</div>
+                </div>
+            </div>
+            <div class="share-close" id="closeShareModal" data-i18n="cancel">取消</div>
+        </div>
+    </div>
+
+    <!-- 社交平台分享弹窗 -->
+    <div id="platformShareModal" class="platform-share-modal">
+        <div class="platform-share-content">
+            <div id="platformShareIcon" class="platform-share-icon"></div>
+            <h3 id="platformShareTitle" class="platform-share-title"></h3>
+            <p id="platformShareInstruction" class="platform-share-instruction"></p>
+            <div class="platform-share-actions">
+                <textarea id="shareText" readonly=""></textarea>
+            </div>
+            <button class="platform-share-button copy-btn" id="copyShareText">复制内容</button>
+            <button class="platform-share-button open-btn" id="openPlatformBtn">打开应用</button>
+        </div>
+    </div>
+
+    <!-- 微信分享二维码弹窗 -->
+    <div id="wechatQrcodeModal" class="wechat-qrcode-modal">
+        <div class="wechat-qrcode-content">
+            <h3 id="qrcodeTitle" class="font-bold text-lg mb-4">微信分享</h3>
+            <div class="qrcode-image">
+                <!-- 二维码将通过JS动态生成在这里 -->
+                <div id="shareQrcode"></div>
+            </div>
+            <p class="qrcode-instruction" id="qrcodeInstruction">请使用微信扫描二维码分享给好友</p>
+            <button class="close-qrcode" id="closeQrcodeModal">关闭</button>
+        </div>
+    </div>
+
+    <!-- 通知提示 -->
+    <div id="notification" class="fixed top-20 right-5 bg-dark text-white px-4 py-3 rounded-lg shadow-lg transform transition-transform duration-300 flex items-center z-50 translate-x-full">
+        <i id="notificationIcon" class="fa fa-exclamation-circle mr-2"></i>
+        <span id="notificationMessage">正在跳转到目标页面，请在该页面停留至少 15 秒</span>
+    </div>
+
+    <!-- 引入生成二维码的库 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+
+    <script>
+        // 多语言支持 - 翻译数据
+        const translations = {
+            zh: {
+                title: "Ragam互动菜园",
+                myAccount: "我的账户",
+                experience: "经验值",
+                currentExp: "当前经验:",
+                level: "等级:",
+                streakDays: "连续登录:",
+                streakDaysSuffix: "天",
+                dailyReward: "领取今日奖励",
+                myGarden: "我的菜园",
+                tomato: "番茄",
+                cucumber: "黄瓜",
+                broccoli: "西兰花",
+                baliSpinach: "巴厘岛空心菜",
+                waterRequired100: "需100水分值",
+                waterRequired120: "需120水分值",
+                waterRequired150: "需150水分值",
+                waterRequired80: "需80水分值",
+                unlockLevel5: "等级5解锁",
+                unlockLevel7: "等级7解锁",
+                waterMinus20: "浇水 (-20经验)",
+                seedShop: "种子商店",
+                tomatoSeeds: "番茄种子",
+                cucumberSeeds: "黄瓜种子",
+                broccoliSeeds: "西兰花种子",
+                spinachSeeds: "空心菜种子",
+                exp50: "50经验",
+                exp60: "60经验",
+                exp200: "200经验",
+                exp250: "250经验",
+                buy: "购买",
+                unlockLevel5Btn: "等级5解锁",
+                unlockLevel7Btn: "等级7解锁",
+                tasks: "任务",
+                task1Title: "浏览Ragam官网",
+                task1Desc: "在官网停留至少10秒",
+                task2Title: "观看官方视频",
+                task2Desc: "观看Ragam官方视频至少10秒",
+                task3Title: "分享Ragam",
+                task3Desc: "分享到社交平台",
+                task4Title: "浏览编织物",
+                task4Desc: "浏览编织物售卖区至少15秒",
+                exp80: "+80 经验",
+                exp100: "+100 经验",
+                exp150: "+150 经验",
+                exp60: "+60 经验",
+                complete: "去完成",
+                volunteerRecruitment: "志愿者招募",
+                volunteer1Title: "Ragam日常协助",
+                volunteer1Date: "2025年12月15-20日 · 巴厘岛",
+                volunteer1Desc: "需要10名国际生志愿者，负责翻译和引导",
+                volunteer2Title: "手工艺推广志愿者",
+                volunteer2Date: "长期 · 线上",
+                volunteer2Desc: "协助推广巴厘岛妇女编织物，需良好英语能力",
+                apply: "我要报名",
+                balineseCrafts: "巴厘岛妇女编织物",
+                craftsDescription: "支持巴厘岛妇女手工艺，每购买一件产品，部分收入将用于帮助当地妇女发展手工艺技能。",
+                craft1Name: "传统编织围巾",
+                craft1Desc: "纯手工编织，采用天然棉线",
+                craft2Name: "手工挂毯装饰",
+                craft2Desc: "传统图案，精美装饰",
+                craft3Name: "编织手提袋",
+                craft3Desc: "实用美观，环保材料",
+                footerDescription: "拥抱社区，连接世界，体验巴厘岛文化",
+                copyright: "© 2025 Ragam互动菜园 | 与Ragam官方合作推出",
+                volunteerApplication: "志愿者报名",
+                name: "姓名",
+                nationality: "国籍",
+                contactInfo: "联系方式",
+                relevantExperience: "相关经历",
+                availability: "可参与时间",
+                termsAgreement: "我知晓并同意所有费用（包括机票、住宿等）需自理",
+                submitApplication: "提交报名",
+                claimed: "已领取",
+                waterSuccess: "浇水成功！",
+                insufficientExp: "经验值不足！",
+                seedPurchased: "种子购买成功！",
+                applicationSubmitted: "报名已提交！",
+                rewardClaimed: "奖励已领取",
+                dailyRewardClaimed: "今日奖励已领取！",
+                shareSuccess: "分享成功！",
+                taskNotCompleted: "任务未完成，请在目标页面停留足够时间",
+                redirectingMessage: "正在跳转到目标页面，请在该页面停留至少",
+                wechat: "微信",
+                moments: "朋友圈",
+                qq: "QQ",
+                xhs: "小红书",
+                weibo: "微博",
+                copyLink: "复制链接",
+                cancel: "取消",
+                linkCopied: "链接已复制到剪贴板",
+                shareTo: "分享到",
+                wechatShareInstruction: "请使用微信扫描二维码分享给好友",
+                momentsShareInstruction: "请使用微信扫描二维码分享到朋友圈",
+                xhsShareInstruction: "复制以下内容，打开小红书应用粘贴并分享",
+                instagramShareInstruction: "复制以下内容，打开Instagram应用粘贴并分享",
+                seedCount: "种子数量:",
+                productNotAvailable: "抱歉，产品售卖还未开始，请耐心等待并关注官网"
+            },
+            en: {
+                title: "Ragam Interactive Garden",
+                myAccount: "My Account",
+                experience: "Experience",
+                currentExp: "Current Exp:",
+                level: "Level:",
+                streakDays: "Streak:",
+                streakDaysSuffix: "days",
+                dailyReward: "Claim Daily Reward",
+                myGarden: "My Garden",
+                tomato: "Tomato",
+                cucumber: "Cucumber",
+                broccoli: "Broccoli",
+                baliSpinach: "Bali Spinach",
+                waterRequired100: "Needs 100 Water",
+                waterRequired120: "Needs 120 Water",
+                waterRequired150: "Needs 150 Water",
+                waterRequired80: "Needs 80 Water",
+                unlockLevel5: "Unlock at Level 5",
+                unlockLevel7: "Unlock at Level 7",
+                waterMinus20: "Water (-20 Exp)",
+                seedShop: "Seed Shop",
+                tomatoSeeds: "Tomato Seeds",
+                cucumberSeeds: "Cucumber Seeds",
+                broccoliSeeds: "Broccoli Seeds",
+                spinachSeeds: "Spinach Seeds",
+                exp50: "50 Exp",
+                exp60: "60 Exp",
+                exp200: "200 Exp",
+                exp250: "250 Exp",
+                buy: "Buy",
+                unlockLevel5Btn: "Unlock at Level 5",
+                unlockLevel7Btn: "Unlock at Level 7",
+                tasks: "Tasks",
+                task1Title: "Browse Ragam Official Site",
+                task1Desc: "Stay on the site for at least 10s",
+                task2Title: "Watch Official Video",
+                task2Desc: "Watch Ragam official video for at least 10s",
+                task3Title: "Share Ragam",
+                task3Desc: "Share to social media",
+                task4Title: "Browse Crafts",
+                task4Desc: "Browse craft section for at least 15s",
+                exp80: "+80 Exp",
+                exp100: "+100 Exp",
+                exp150: "+150 Exp",
+                exp60: "+60 Exp",
+                complete: "Complete",
+                volunteerRecruitment: "Volunteer Recruitment",
+                volunteer1Title: "Ragam Daily Assistance",
+                volunteer1Date: "Dec 15-20, 2025 · Bali",
+                volunteer1Desc: "10 international volunteers needed for translation and guidance",
+                volunteer2Title: "Craft Promotion Volunteer",
+                volunteer2Date: "Long-term · Online",
+                volunteer2Desc: "Assist in promoting Balinese women's crafts, good English required",
+                apply: "Apply Now",
+                balineseCrafts: "Balinese Women's Crafts",
+                craftsDescription: "Support Balinese women's craftsmanship; part of the proceeds will help local women develop their craft skills.",
+                craft1Name: "Traditional Woven Scarf",
+                craft1Desc: "Hand-woven with natural cotton thread",
+                craft2Name: "Handmade Tapestry Decoration",
+                craft2Desc: "Traditional pattern, exquisite decoration",
+                craft3Name: "Woven Tote Bag",
+                craft3Desc: "Practical and beautiful, eco-friendly materials",
+                footerDescription: "Embrace the community, connect the world, experience Balinese culture",
+                copyright: "© 2025 Ragam Interactive Garden | Co-launched with Ragam Official",
+                volunteerApplication: "Volunteer Application",
+                name: "Name",
+                nationality: "Nationality",
+                contactInfo: "Contact Information",
+                relevantExperience: "Relevant Experience",
+                availability: "Availability",
+                termsAgreement: "I understand and agree that all expenses (including airfare, accommodation, etc.) are at my own cost",
+                submitApplication: "Submit Application",
+                claimed: "claimed",
+                waterSuccess: "Watering successful!",
+                insufficientExp: "Insufficient experience!",
+                seedPurchased: "Seed purchased successfully!",
+                applicationSubmitted: "Application submitted successfully!",
+                rewardClaimed: "Reward Claimed",
+                dailyRewardClaimed: "Daily reward claimed!",
+                shareSuccess: "Share successful!",
+                taskNotCompleted: "Task not completed, please stay on the target page for the required time",
+                redirectingMessage: "Redirecting to target page, please stay on that page for at least",
+                wechat: "WeChat",
+                moments: "Moments",
+                qq: "QQ",
+                xhs: "Xiaohongshu",
+                weibo: "Weibo",
+                copyLink: "Copy Link",
+                cancel: "Cancel",
+                linkCopied: "Link copied to clipboard",
+                shareTo: "Share to",
+                wechatShareInstruction: "Please use WeChat to scan the QR code to share with friends",
+                momentsShareInstruction: "Please use WeChat to scan the QR code to share to Moments",
+                xhsShareInstruction: "Copy the content below, open Xiaohongshu app to paste and share",
+                instagramShareInstruction: "Copy the content below, open Instagram app to paste and share",
+                seedCount: "Seed count:",
+                productNotAvailable: "Sorry, product sales have not started yet. Please wait patiently and follow the official website"
+            },
+            fr: { 
+                title: "Jardin interactif Ragam",
+                myAccount: "Mon compte",
+                experience: "Expérience",
+                currentExp: "Expérience actuelle:",
+                level: "Niveau:",
+                streakDays: "Série:",
+                streakDaysSuffix: "jours",
+                dailyReward: "Claquer la récompense quotidienne",
+                myGarden: "Mon jardin",
+                tomato: "Tomate",
+                cucumber: "Concombre",
+                broccoli: "Brocoli",
+                baliSpinach: "Épinard de Bali",
+                waterRequired100: "Besoin de 100 eau",
+                waterRequired120: "Besoin de 120 eau",
+                waterRequired150: "Besoin de 150 eau",
+                waterRequired80: "Besoin de 80 eau",
+                unlockLevel5: "Débloquer au niveau 5",
+                unlockLevel7: "Débloquer au niveau 7",
+                waterMinus20: "Arroser (-20 Exp)",
+                seedShop: "Boutique de graines",
+                tomatoSeeds: "Graines de tomate",
+                cucumberSeeds: "Graines de concombre",
+                broccoliSeeds: "Graines de brocoli",
+                spinachSeeds: "Graines d'épinard",
+                exp50: "50 Exp",
+                exp60: "60 Exp",
+                exp200: "200 Exp",
+                exp250: "250 Exp",
+                buy: "Acheter",
+                unlockLevel5Btn: "Débloquer au niveau 5",
+                unlockLevel7Btn: "Débloquer au niveau 7",
+                tasks: "Tâches",
+                task1Title: "Parcourir le site officiel Ragam",
+                task1Desc: "Rester sur le site pendant au moins 10s",
+                task2Title: "Regarder la vidéo officielle",
+                task2Desc: "Regarder la vidéo officielle Ragam pendant au moins 10s",
+                task3Title: "Partager Ragam",
+                task3Desc: "Partager sur les réseaux sociaux",
+                task4Title: "Parcourir les artisanats",
+                task4Desc: "Parcourir la section artisanat pendant au moins 15s",
+                exp80: "+80 Exp",
+                exp100: "+100 Exp",
+                exp150: "+150 Exp",
+                exp60: "+60 Exp",
+                complete: "Compléter",
+                volunteerRecruitment: "Recrutement de bénévoles",
+                volunteer1Title: "Assistance quotidienne Ragam",
+                volunteer1Date: "15-20 décembre 2025 · Bali",
+                volunteer1Desc: "10 bénévoles internationaux nécessaires pour la traduction et l'accompagnement",
+                volunteer2Title: "Bénévole pour la promotion des artisanats",
+                volunteer2Date: "À long terme · En ligne",
+                volunteer2Desc: "Aider à promouvoir les artisanats des femmes balinaises, bonne connaissance de l'anglais requise",
+                apply: "Postuler maintenant",
+                balineseCrafts: "Artisanats des femmes balinaises",
+                craftsDescription: "Soutenir l'artisanat des femmes balinaises ; une partie des bénéfices aidera les femmes locales à développer leurs compétences artisanales.",
+                craft1Name: "Foulard tissé traditionnel",
+                craft1Desc: "Tissé à la main avec du fil de coton naturel",
+                craft2Name: "Décoration de tapisserie faite à la main",
+                craft2Desc: "Motif traditionnel, décoration exquise",
+                craft3Name: "Sac à main tissé",
+                craft3Desc: "Pratique et beau, matériaux écologiques",
+                footerDescription: "Embrasser la communauté, connecter le monde, découvrir la culture balinaise",
+                copyright: "© 2025 Jardin interactif Ragam | Co-lancé avec Ragam Official",
+                volunteerApplication: "Candidature de bénévole",
+                name: "Nom",
+                nationality: "Nationalité",
+                contactInfo: "Informations de contact",
+                relevantExperience: "Expérience pertinente",
+                availability: "Disponibilité",
+                termsAgreement: "Je comprends et accepte que toutes les dépenses (y compris les billets d'avion, l'hébergement, etc.) soient à ma charge",
+                submitApplication: "Soumettre la candidature",
+                claimed: "réclamé",
+                waterSuccess: "Arrosage réussi !",
+                insufficientExp: "Expérience insuffisante !",
+                seedPurchased: "Graine achetée avec succès !",
+                applicationSubmitted: "Candidature soumise avec succès !",
+                rewardClaimed: "Récompense réclamée",
+                dailyRewardClaimed: "Récompense quotidienne réclamée !",
+                shareSuccess: "Partage réussi !",
+                taskNotCompleted: "Tâche non terminée, veuillez rester sur la page cible pendant le temps requis",
+                redirectingMessage: "Redirection vers la page cible, veuillez rester sur cette page pendant au moins",
+                wechat: "WeChat",
+                moments: "Moments",
+                qq: "QQ",
+                xhs: "Xiaohongshu",
+                weibo: "Weibo",
+                copyLink: "Copier le lien",
+                cancel: "Annuler",
+                linkCopied: "Lien copié dans le presse-papiers",
+                shareTo: "Partager sur",
+                wechatShareInstruction: "Veuillez utiliser WeChat pour scanner le code QR pour partager avec des amis",
+                momentsShareInstruction: "Veuillez utiliser WeChat pour scanner le code QR pour partager sur Moments",
+                xhsShareInstruction: "Copiez le contenu ci-dessous, ouvrez l'application Xiaohongshu pour coller et partager",
+                instagramShareInstruction: "Copiez le contenu ci-dessous, ouvrez l'application Instagram pour coller et partager",
+                seedCount: "Nombre de graines:",
+                productNotAvailable: "Désolé, les ventes de produits n'ont pas encore commencé. Veuillez patienter et suivre le site officiel"
+            },
+            id: { 
+                title: "Kebun Interaktif Ragam",
+                myAccount: "Akun Saya",
+                experience: "Pengalaman",
+                currentExp: "Exp Saat Ini:",
+                level: "Level:",
+                streakDays: "Streak:",
+                streakDaysSuffix: "hari",
+                dailyReward: "Tuntaskan Hadiah Harian",
+                myGarden: "Kebun Saya",
+                tomato: "Tomato",
+                cucumber: "Timun",
+                broccoli: "Brokoli",
+                baliSpinach: "Bayam Bali",
+                waterRequired100: "Butuh 100 Air",
+                waterRequired120: "Butuh 120 Air",
+                waterRequired150: "Butuh 150 Air",
+                waterRequired80: "Butuh 80 Air",
+                unlockLevel5: "Buka pada Level 5",
+                unlockLevel7: "Buka pada Level 7",
+                waterMinus20: "Siram (-20 Exp)",
+                seedShop: "Toko Benih",
+                tomatoSeeds: "Benih Tomat",
+                cucumberSeeds: "Benih Timun",
+                broccoliSeeds: "Benih Brokoli",
+                spinachSeeds: "Benih Bayam",
+                exp50: "50 Exp",
+                exp60: "60 Exp",
+                exp200: "200 Exp",
+                exp250: "250 Exp",
+                buy: "Beli",
+                unlockLevel5Btn: "Buka pada Level 5",
+                unlockLevel7Btn: "Buka pada Level 7",
+                tasks: "Tugas",
+                task1Title: "Jelajahi Situs Resmi Ragam",
+                task1Desc: "Tinggal di situs paling tidak 10s",
+                task2Title: "Tonton Video Resmi",
+                task2Desc: "Tonton video resmi Ragam paling tidak 10s",
+                task3Title: "Bagikan Ragam",
+                task3Desc: "Bagikan ke media sosial",
+                task4Title: "Jelajahi Kerajinan",
+                task4Desc: "Jelajahi bagian kerajinan paling tidak 15s",
+                exp80: "+80 Exp",
+                exp100: "+100 Exp",
+                exp150: "+150 Exp",
+                exp60: "+60 Exp",
+                complete: "Selesaikan",
+                volunteerRecruitment: "Rekrutmen Sukarelawan",
+                volunteer1Title: "Bantuan Harian Ragam",
+                volunteer1Date: "15-20 Desember 2025 · Bali",
+                volunteer1Desc: "Diperlukan 10 sukarelawan internasional untuk penerjemahan dan panduan",
+                volunteer2Title: "Sukarelawan Promosi Kerajinan",
+                volunteer2Date: "Jangka panjang · Online",
+                volunteer2Desc: "Membantu mempromosikan kerajinan wanita Bali, memerlukan kemampuan bahasa Inggris yang baik",
+                apply: "Daftar Sekarang",
+                balineseCrafts: "Kerajinan Wanita Bali",
+                craftsDescription: "Dukung kerajinan wanita Bali; sebagian dari hasil penjualan akan membantu wanita lokal mengembangkan keterampilan kerajinan mereka.",
+                craft1Name: "Selendang Tenun Tradisional",
+                craft1Desc: "Ditenun secara manual dengan benang kapas alami",
+                craft2Name: "Dekorasi Karpet Tangan",
+                craft2Desc: "Polanya tradisional, dekorasinya indah",
+                craft3Name: "Tas Tangan Tenun",
+                craft3Desc: "Praktis dan indah, bahan ramah lingkungan",
+                footerDescription: "Embracing the community, connect the world, experience Balinese culture",
+                copyright: "© 2025 Kebun Interaktif Ragam | Diluncurkan bersama Ragam Resmi",
+                volunteerApplication: "Aplikasi Sukarelawan",
+                name: "Nama",
+                nationality: "Kewarganegaraan",
+                contactInfo: "Informasi Kontak",
+                relevantExperience: "Pengalaman Relevan",
+                availability: "Ketersediaan",
+                termsAgreement: "Saya memahami dan setuju bahwa semua biaya (termasuk tiket pesawat, akomodasi, dll.) ditanggung sendiri",
+                submitApplication: "Kirim Aplikasi",
+                claimed: "diklaim",
+                waterSuccess: "Penyiraman berhasil!",
+                insufficientExp: "Pengalaman tidak cukup!",
+                seedPurchased: "Benih berhasil dibeli!",
+                applicationSubmitted: "Aplikasi berhasil dikirim!",
+                rewardClaimed: "Hadiah Diklaim",
+                dailyRewardClaimed: "Hadiah harian telah diklaim!",
+                shareSuccess: "Berbagi berhasil!",
+                taskNotCompleted: "Tugas tidak selesai, harap tetap di halaman target selama waktu yang diperlukan",
+                redirectingMessage: "Mengalihkan ke halaman target, harap tetap di halaman itu selama setidaknya",
+                wechat: "WeChat",
+                moments: "Moments",
+                qq: "QQ",
+                xhs: "Xiaohongshu",
+                weibo: "Weibo",
+                copyLink: "Salin Tautan",
+                cancel: "Batal",
+                linkCopied: "Tautan disalin ke papan klip",
+                shareTo: "Bagikan ke",
+                wechatShareInstruction: "Silakan gunakan WeChat untuk memindai kode QR untuk berbagi dengan teman",
+                momentsShareInstruction: "Silakan gunakan WeChat untuk memindai kode QR untuk berbagi ke Moments",
+                xhsShareInstruction: "Salin konten di bawah ini, buka aplikasi Xiaohongshu untuk menempel dan berbagi",
+                instagramShareInstruction: "Salin konten di bawah ini, buka aplikasi Instagram untuk menempel dan berbagi",
+                seedCount: "Jumlah benih:",
+                productNotAvailable: "Maaf, penjualan produk belum dimulai. Mohon tunggu dengan sabar dan ikuti situs resmi"
+            }
+        };
+
+        // 页面交互逻辑
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. 多语言切换功能
+            const languageOptions = document.querySelectorAll('.language-option');
+            const currentLanguageEl = document.getElementById('currentLanguage');
+            let currentLang = 'zh';
+
+            // 更新页面翻译
+            function updateTranslations(lang) {
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (translations[lang][key]) {
+                        el.textContent = translations[lang][key];
+                    }
+                });
+                currentLanguageEl.textContent = lang === 'zh' ? '中文' : lang === 'en' ? 'English' : lang === 'fr' ? 'Français' : 'Bahasa Indonesia';
+                currentLang = lang;
+                
+                // 更新二维码提示信息
+                updateQrcodeInstructions();
+            }
+
+            // 绑定语言切换事件
+            languageOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const lang = this.getAttribute('data-lang');
+                    updateTranslations(lang);
+                });
+            });
+
+            // 2. 经验值与任务进度逻辑
+            const currentExpEl = document.getElementById('currentExp');
+            const expBarEl = document.getElementById('expBar');
+            let currentExp = 150;
+            const maxExp = 500;
+
+            // 更新经验值显示
+            function updateExp() {
+                currentExpEl.textContent = `${currentExp}/${maxExp}`;
+                expBarEl.style.width = `${(currentExp/maxExp)*100}%`;
+            }
+
+            // 任务进度条逻辑
+            const completeTaskBtns = document.querySelectorAll('.complete-task');
+            completeTaskBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const taskId = this.closest('.task-item').getAttribute('data-task-id');
+                    const duration = parseInt(this.getAttribute('data-duration'));
+                    const progressBar = document.querySelector(`.timer-progress-bar[data-task-id="${taskId}"]`);
+                    const link = this.getAttribute('data-link');
+                    const taskButton = this;
+                    
+                    // 对于不需要跳转的任务（如分享），直接处理
+                    if (duration === 0) {
+                        // 重置按钮状态，允许用户重新分享
+                        taskButton.disabled = false;
+                        taskButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                        taskButton.classList.add('bg-primary', 'hover:bg-dark');
+                        
+                        // 打开分享弹窗
+                        openShareModal();
+                        return;
+                    }
+
+                    // 显示提示信息，使用正确的时间单位
+                    const timeUnit = currentLang === 'zh' ? '秒' : 
+                                   currentLang === 'en' ? 's' : 
+                                   currentLang === 'fr' ? 's' : 's';
+                    
+                    showNotification('info', `${translations[currentLang]['redirectingMessage']} ${duration} ${timeUnit}`);
+                    
+                    // 重置进度条
+                    progressBar.style.width = '0%';
+                    
+                    // 记录任务开始时间
+                    const startTime = new Date().getTime();
+                    
+                    // 保存任务信息到localStorage
+                    localStorage.setItem(`task_${taskId}_start`, startTime);
+                    localStorage.setItem(`task_${taskId}_duration`, duration);
+                    
+                    // 检查是否是编织物任务
+                    if (taskId === '4') {
+                        // 平滑滚动到编织物区域
+                        document.querySelector('#crafts-section').scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                        
+                        // 开始计时
+                        startTaskTimer(taskId, duration, progressBar, taskButton);
+                    } else if (link.startsWith('#')) {
+                        // 其他内部链接直接开始计时
+                        startTaskTimer(taskId, duration, progressBar, taskButton);
+                    } else {
+                        // 外部链接：打开新窗口
+                        const newWindow = window.open(link, '_blank');
+                        
+                        if (newWindow) {
+                            // 设置定时器检查页面是否关闭
+                            const checkWindowClosed = setInterval(() => {
+                                if (newWindow.closed) {
+                                    clearInterval(checkWindowClosed);
+                                    
+                                    // 计算实际停留时间
+                                    const endTime = new Date().getTime();
+                                    const actualDuration = (endTime - startTime) / 1000;
+                                    
+                                    // 检查是否满足时长要求
+                                    if (actualDuration >= duration) {
+                                        // 完成任务
+                                        progressBar.style.width = '100%';
+                                        currentExp += taskId === '1' ? 80 : taskId === '2' ? 100 : 60;
+                                        updateExp();
+                                        showNotification('success', translations[currentLang][`exp${taskId === '1' ? 80 : taskId === '2' ? 100 : 60}`] + ' ' + translations[currentLang]['claimed']);
+                                        
+                                        // 禁用按钮并更改样式
+                                        taskButton.disabled = true;
+                                        taskButton.classList.remove('bg-primary', 'hover:bg-dark');
+                                        taskButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+                                        taskButton.innerHTML = `<span data-i18n="claimed">${translations[currentLang]['claimed']}</span>`;
+                                    } else {
+                                        // 未满足时长要求
+                                        showNotification('error', translations[currentLang]['taskNotCompleted']);
+                                    }
+                                    
+                                    // 清除本地存储
+                                    localStorage.removeItem(`task_${taskId}_start`);
+                                    localStorage.removeItem(`task_${taskId}_duration`);
+                                }
+                            }, 1000); // 每秒检查一次
+                        }
+                    }
+                });
+            });
+            
+            // 为内部任务（如浏览编织物）启动计时器
+            function startTaskTimer(taskId, duration, progressBar, taskButton) {
+                let elapsed = 0;
+                const interval = setInterval(() => {
+                    elapsed++;
+                    const percentage = (elapsed / duration) * 100;
+                    progressBar.style.width = `${Math.min(percentage, 100)}%`;
+                    
+                    if (elapsed >= duration) {
+                        clearInterval(interval);
+                        // 完成任务
+                        currentExp += taskId === '4' ? 60 : 0;
+                        updateExp();
+                        showNotification('success', translations[currentLang][`exp${taskId === '4' ? 60 : 0}`] + ' ' + translations[currentLang]['claimed']);
+                        
+                        // 禁用按钮并更改样式
+                        taskButton.disabled = true;
+                        taskButton.classList.remove('bg-primary', 'hover:bg-dark');
+                        taskButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+                        taskButton.innerHTML = `<span data-i18n="claimed">${translations[currentLang]['claimed']}</span>`;
+                    }
+                }, 1000);
+            }
+
+            // 3. 浇水与购买种子逻辑
+            const waterBtns = document.querySelectorAll('.water-plant');
+            waterBtns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const plant = this.getAttribute('data-plant');
+                    const cost = parseInt(this.getAttribute('data-cost'));
+                    const maxWater = parseInt(this.getAttribute('data-max'));
+                    
+                    // 获取当前种子数量
+                    const seedCountEl = document.querySelector(`.${plant}-seed-count`);
+                    const seedCount = parseInt(seedCountEl.textContent);
+                    
+                    // 获取当前水分进度
+                    const plot = this.closest('.garden-plot');
+                    const progressBar = plot.querySelector('.bg-green-500, .bg-red-500');
+                    const currentWaterPercent = parseInt(progressBar.style.width);
+                    
+                    // 检查是否有可用种子
+                    if (seedCount <= 0 && currentWaterPercent >= 100) {
+                        showNotification('error', `没有${translations[currentLang][plant]}种子了，请先购买！`);
+                        return;
+                    }
+                    
+                    if (currentExp >= cost) {
+                        currentExp -= cost;
+                        updateExp();
+                        
+                        const waterValueEl = plot.querySelector('.water-value');
+                        
+                        // 检查是否需要重置进度条
+                        if (currentWaterPercent >= 100) {
+                            // 消耗一个种子
+                            seedCountEl.textContent = seedCount - 1;
+                            
+                            // 移除生长动画类，添加重置动画类
+                            progressBar.classList.remove('progress-grow');
+                            progressBar.classList.add('progress-reset');
+                            
+                            // 先重置到0%
+                            progressBar.style.width = '0%';
+                            
+                            // 等待重置动画完成后再增加
+                            setTimeout(() => {
+                                // 移除重置动画类，添加生长动画类
+                                progressBar.classList.remove('progress-reset');
+                                progressBar.classList.add('progress-grow');
+                                
+                                // 设置新进度
+                                const newWater = Math.min(0 + cost, 100);
+                                progressBar.style.width = `${newWater}%`;
+                                waterValueEl.textContent = `${newWater}/${maxWater}`;
+                            }, 500); // 与CSS过渡时间匹配
+                        } else {
+                            // 正常增加进度
+                            const newWater = Math.min(currentWaterPercent + cost, 100);
+                            progressBar.style.width = `${newWater}%`;
+                            waterValueEl.textContent = `${newWater}/${maxWater}`;
+                        }
+                        
+                        showNotification('info', translations[currentLang]['waterSuccess'] || 'Watering successful!');
+                    } else {
+                        showNotification('error', translations[currentLang]['insufficientExp'] || 'Insufficient experience!');
+                    }
+                });
+            });
+
+            const buySeedBtns = document.querySelectorAll('.buy-seed');
+            buySeedBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const seed = this.getAttribute('data-seed');
+                    const cost = parseInt(this.getAttribute('data-cost'));
+                    
+                    if (currentExp >= cost) {
+                        currentExp -= cost;
+                        updateExp();
+                        
+                        // 增加种子数量
+                        const seedCountEl = document.querySelector(`.${seed}-seed-count`);
+                        seedCountEl.textContent = parseInt(seedCountEl.textContent) + 1;
+                        
+                        showNotification('success', translations[currentLang]['seedPurchased'] || 'Seed purchased successfully!');
+                    } else {
+                        showNotification('error', translations[currentLang]['insufficientExp'] || 'Insufficient experience!');
+                    }
+                });
+            });
+
+            // 4. 志愿者报名模态框
+            const applyVolunteerBtns = document.querySelectorAll('.apply-volunteer');
+            const volunteerModal = document.getElementById('volunteerModal');
+            const closeVolunteerModal = document.getElementById('closeVolunteerModal');
+            const volunteerForm = document.getElementById('volunteerForm');
+            const volunteerIdInput = document.getElementById('volunteerId');
+
+            applyVolunteerBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const volunteerId = this.getAttribute('data-id');
+                    volunteerIdInput.value = volunteerId;
+                    volunteerModal.classList.remove('hidden');
+                });
+            });
+
+            closeVolunteerModal.addEventListener('click', function() {
+                volunteerModal.classList.add('hidden');
+            });
+
+            volunteerForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                volunteerModal.classList.add('hidden');
+                showNotification('success', translations[currentLang]['applicationSubmitted'] || 'Application submitted successfully!');
+            });
+
+            // 5. 每日奖励领取
+            const claimDailyRewardBtn = document.getElementById('claimDailyReward');
+            claimDailyRewardBtn.addEventListener('click', function() {
+                currentExp += 50;
+                updateExp();
+                this.textContent = translations[currentLang]['rewardClaimed'] || 'Reward Claimed';
+                this.disabled = true;
+                this.classList.remove('bg-accent', 'hover:bg-amber-500');
+                this.classList.add('bg-gray-400');
+                showNotification('success', translations[currentLang]['dailyRewardClaimed'] || 'Daily reward claimed!');
+            });
+
+            // 6. 通知提示功能
+            function showNotification(type, message) {
+                const notification = document.getElementById('notification');
+                const notificationIcon = document.getElementById('notificationIcon');
+                const notificationMessage = document.getElementById('notificationMessage');
+
+                // 设置通知类型（成功/错误/信息）
+                notificationIcon.className = `fa ${type === 'success' ? 'fa-check-circle text-green-500' : type === 'error' ? 'fa-exclamation-circle text-red-500' : 'fa-info-circle text-blue-500'} mr-2`;
+                notificationMessage.textContent = message;
+
+                // 显示通知
+                notification.classList.remove('translate-x-full');
+                notification.classList.add('translate-x-0');
+
+                // 3秒后隐藏
+                setTimeout(() => {
+                    notification.classList.remove('translate-x-0');
+                    notification.classList.add('translate-x-full');
+                }, 3000);
+            }
+
+            // 7. 编织物购买按钮点击事件 - 新增功能
+            const buyCraftBtns = document.querySelectorAll('.buy-craft');
+            buyCraftBtns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // 显示多语言提示信息
+                    showNotification('info', translations[currentLang]['productNotAvailable']);
+                });
+            });
+
+            // 8. 分享功能实现 - 支持手机端分享
+            const shareModal = document.getElementById('shareModal');
+            const closeShareModal = document.getElementById('closeShareModal');
+            const shareOptions = document.querySelectorAll('.share-option');
+            const wechatQrcodeModal = document.getElementById('wechatQrcodeModal');
+            const closeQrcodeModal = document.getElementById('closeQrcodeModal');
+            const qrcodeTitle = document.getElementById('qrcodeTitle');
+            const qrcodeInstruction = document.getElementById('qrcodeInstruction');
+            const shareQrcode = document.getElementById('shareQrcode');
+            const platformShareModal = document.getElementById('platformShareModal');
+            const platformShareIcon = document.getElementById('platformShareIcon');
+            const platformShareTitle = document.getElementById('platformShareTitle');
+            const platformShareInstruction = document.getElementById('platformShareInstruction');
+            const shareText = document.getElementById('shareText');
+            const copyShareTextBtn = document.getElementById('copyShareText');
+            const openPlatformBtn = document.getElementById('openPlatformBtn');
+            
+            // 分享内容配置
+            const shareConfig = {
+                url: "https://www.ragamfoundation.org",
+                title: "Ragam互动菜园",
+                description: "拥抱社区，连接世界，体验巴厘岛文化",
+                image: "https://picsum.photos/id/106/200/200"
+            };
+            
+            // 生成分享二维码
+            function generateShareQrcode(text) {
+                // 清除现有内容
+                while (shareQrcode.firstChild) {
+                    shareQrcode.removeChild(shareQrcode.firstChild);
+                }
+                
+                // 创建新的canvas元素
+                const canvas = document.createElement('canvas');
+                shareQrcode.appendChild(canvas);
+                
+                // 生成二维码
+                QRCode.toCanvas(canvas, text, {
+                    width: 180,
+                    margin: 1,
+                    color: {
+                        dark: '#333333',
+                        light: '#ffffff'
+                    }
+                }, function(error) {
+                    if (error) {
+                        console.error('生成二维码失败:', error);
+                        shareQrcode.innerHTML = '<div class="text-red-500">无法生成二维码</div>';
+                    }
+                });
+            }
+            
+            // 更新二维码提示信息
+            function updateQrcodeInstructions() {
+                if (qrcodeTitle.textContent.includes('朋友圈') || qrcodeTitle.textContent.includes('Moments')) {
+                    qrcodeInstruction.textContent = translations[currentLang]['momentsShareInstruction'];
+                } else {
+                    qrcodeInstruction.textContent = translations[currentLang]['wechatShareInstruction'];
+                }
+            }
+            
+            // 构建可分享的内容
+            const buildShareContent = (platform) => {
+                const shareText = `${shareConfig.title}\n${shareConfig.description}\n${shareConfig.url}`;
+                const encodedUrl = encodeURIComponent(shareConfig.url);
+                const encodedTitle = encodeURIComponent(shareConfig.title);
+                const encodedDesc = encodeURIComponent(shareConfig.description);
+                const encodedImage = encodeURIComponent(shareConfig.image);
+                
+                // 移动端应用分享URL Scheme
+                switch(platform) {
+                    case 'qq':
+                        return `https://connect.qq.com/widget/shareqq/index.html?url=${encodedUrl}&title=${encodedTitle}&desc=${encodedDesc}&summary=${encodedDesc}&pics=${encodedImage}&site=${encodedUrl}`;
+                    case 'weibo':
+                        return `https://service.weibo.com/share/share.php?url=${encodedUrl}&title=${encodedTitle}&pic=${encodedImage}`;
+                    case 'whatsapp':
+                        return `whatsapp://send?text=${encodeURIComponent(shareText)}`;
+                    case 'telegram':
+                        return `tg://msg_url?url=${encodedUrl}&text=${encodedTitle}`;
+                    default:
+                        return shareText;
+                }
+            };
+            
+            // 打开分享弹窗
+            window.openShareModal = function() {
+                shareModal.classList.add('active');
+            };
+            
+            // 关闭分享弹窗
+            closeShareModal.addEventListener('click', function() {
+                shareModal.classList.remove('active');
+            });
+            
+            // 点击弹窗外部关闭
+            shareModal.addEventListener('click', function(e) {
+                if (e.target === shareModal) {
+                    shareModal.classList.remove('active');
+                }
+            });
+            
+            // 关闭二维码弹窗
+            closeQrcodeModal.addEventListener('click', function() {
+                wechatQrcodeModal.classList.remove('active');
+            });
+            
+            // 关闭平台分享弹窗
+            platformShareModal.addEventListener('click', function(e) {
+                if (e.target === platformShareModal) {
+                    platformShareModal.classList.remove('active');
+                }
+            });
+            
+            // 复制分享内容
+            copyShareTextBtn.addEventListener('click', function() {
+                navigator.clipboard.writeText(shareText.value).then(() => {
+                    showNotification('success', translations[currentLang]['linkCopied']);
+                    
+                    // 关闭平台分享弹窗
+                    setTimeout(() => {
+                        platformShareModal.classList.remove('active');
+                    }, 1000);
+                }).catch(err => {
+                    console.error('无法复制内容: ', err);
+                    showNotification('error', '无法复制内容，请手动复制');
+                });
+            });
+            
+            // 打开平台应用
+            openPlatformBtn.addEventListener('click', function() {
+                const platform = this.getAttribute('data-platform');
+                let url = buildShareContent(platform);
+                
+                // 尝试打开原生应用，如果失败则打开网页版
+                if (platform === 'whatsapp' || platform === 'telegram') {
+                    // 使用iframe尝试打开URL Scheme，避免页面跳转
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    iframe.src = url;
+                    document.body.appendChild(iframe);
+                    
+                    // 3秒后检查是否成功打开应用
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                        // 如果仍在当前页面，则打开网页版
+                        if (document.visibilityState === 'visible') {
+                            url = platform === 'whatsapp' ? 'https://web.whatsapp.com' : 'https://web.telegram.org';
+                            window.open(url, '_blank');
+                        }
+                    }, 3000);
+                } else {
+                    // 其他平台直接打开网页版
+                    url = platform === 'xhs' ? 'https://www.xiaohongshu.com' : 
+                          platform === 'instagram' ? 'https://www.instagram.com' : url;
+                    window.open(url, '_blank');
+                }
+                
+                // 关闭弹窗
+                platformShareModal.classList.remove('active');
+            });
+            
+            // 各分享选项功能
+            shareOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const platform = this.getAttribute('data-platform');
+                    const platformName = this.querySelector('.share-name').textContent;
+                    const shareContent = buildShareContent(platform);
+                    
+                    // 执行实际分享操作
+                    if (['wechat', 'wechat-moments'].includes(platform)) {
+                        // 微信/朋友圈分享 - 显示二维码
+                        qrcodeTitle.textContent = platform === 'wechat' ? 
+                            `${translations[currentLang]['shareTo']} ${translations[currentLang]['wechat']}` : 
+                            `${translations[currentLang]['shareTo']} ${translations[currentLang]['moments']}`;
+                        updateQrcodeInstructions();
+                        generateShareQrcode(shareConfig.url);
+                        wechatQrcodeModal.classList.add('active');
+                        
+                        // 关闭分享弹窗
+                        shareModal.classList.remove('active');
+                    } else if (['xhs', 'instagram'].includes(platform)) {
+                        // 小红书和Instagram分享 - 显示专用弹窗
+                        const platformColorClass = platform === 'xhs' ? 'bg-xhs' : 'bg-instagram';
+                        const platformIconClass = platform === 'xhs' ? 'fa-book' : 'fa-instagram';
+                        const platformInstructionKey = platform === 'xhs' ? 'xhsShareInstruction' : 'instagramShareInstruction';
+                        
+                        // 设置弹窗内容
+                        platformShareIcon.className = `platform-share-icon ${platformColorClass}`;
+                        platformShareIcon.innerHTML = `<i class="fa ${platformIconClass}"></i>`;
+                        platformShareTitle.textContent = `${translations[currentLang]['shareTo']} ${platformName}`;
+                        platformShareInstruction.textContent = translations[currentLang][platformInstructionKey];
+                        shareText.value = shareContent;
+                        openPlatformBtn.setAttribute('data-platform', platform);
+                        
+                        // 显示弹窗
+                        platformShareModal.classList.add('active');
+                        
+                        // 关闭分享弹窗
+                        shareModal.classList.remove('active');
+                    } else if (['qq', 'weibo', 'whatsapp', 'telegram'].includes(platform)) {
+                        // 支持直接跳转的平台
+                        window.open(shareContent, '_blank', 'width=600,height=500');
+                        showNotification('success', `${translations[currentLang]['shareSuccess']} ${platformName}`);
+                        
+                        // 完成分享任务
+                        completeShareTask();
+                        
+                        // 关闭分享弹窗
+                        shareModal.classList.remove('active');
+                    } else if (platform === 'copy-link') {
+                        // 复制链接功能
+                        navigator.clipboard.writeText(shareConfig.url).then(() => {
+                            // 显示多语言的复制成功通知
+                            showNotification('success', translations[currentLang]['linkCopied']);
+                            
+                            // 完成分享任务
+                            completeShareTask();
+                            
+                            // 关闭分享弹窗
+                            shareModal.classList.remove('active');
+                        }).catch(err => {
+                            console.error('无法复制链接: ', err);
+                            showNotification('error', '无法复制链接，请手动复制');
+                        });
+                    }
+                });
+            });
+            
+            // 完成分享任务
+            function completeShareTask() {
+                const taskId = '3';
+                const progressBar = document.querySelector(`.timer-progress-bar[data-task-id="${taskId}"]`);
+                const taskButton = document.querySelector(`.complete-task[data-link="javascript:openShareModal()"]`);
+                
+                progressBar.style.width = '100%';
+                currentExp += 150;
+                updateExp();
+                
+                // 禁用按钮并更改样式
+                taskButton.disabled = true;
+                taskButton.classList.remove('bg-primary', 'hover:bg-dark');
+                taskButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+                taskButton.innerHTML = `<span data-i18n="claimed">${translations[currentLang]['claimed']}</span>`;
+                
+                showNotification('success', translations[currentLang]['shareSuccess']);
+            }
+
+            // 初始化页面
+            updateExp();
+            updateTranslations(currentLang);
+        });
+    </script>
+
+
+    </body></html>
